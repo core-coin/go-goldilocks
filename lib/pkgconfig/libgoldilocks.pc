@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libgoldilocks
+Description: Pure ed448 implementation
+Version: 0.0.1
+Libs: -L${libdir} -lgoldilocks
+Cflags: -I${includedir}
