@@ -15,6 +15,9 @@ import (
 	"unsafe"
 )
 
+type PublicKey [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte
+type PrivateKey [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]byte
+
 func EdPublicKeyToX448(edKey []byte) []byte {
 	if len(edKey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
 		panic("wrong len")
@@ -51,7 +54,7 @@ func EdPrivateKeyToX448(edKey []byte) []byte {
 	return golangX448Key[:]
 }
 
-func Ed448Verify(signature, pubkey, message, context []byte, prehashed bool) bool {
+func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed bool) bool {
 	cSig := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]C.uint8_t{}
 	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
 
@@ -93,7 +96,7 @@ func Ed448DeriveSecret() {
 }
 
 //TODO try golang array to func
-func Ed448Sign(privkey, pubkey, message, context []byte, prehashed bool) []byte {
+func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
 	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte{}
 
 	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
@@ -128,10 +131,10 @@ func Ed448Sign(privkey, pubkey, message, context []byte, prehashed bool) []byte 
 
 	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
 
-	return signature[:]
+	return signature
 }
 
-func Ed448DerivePublicKey(privkey []byte) []byte {
+func Ed448DerivePublicKey(privkey PrivateKey) PublicKey {
 	pubkey := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte{}
 
 	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
@@ -143,25 +146,25 @@ func Ed448DerivePublicKey(privkey []byte) []byte {
 
 	C.memcpy(unsafe.Pointer(&pubkey[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
 
-	return pubkey[:]
+	return pubkey
 }
 
-func Ed448GenerateKey(seed []byte) ([]byte, error) {
-	key := make([]byte, C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+func Ed448GenerateKey(seed []byte) (PrivateKey, error) {
+	key := new(PrivateKey)
 	if len(seed) != fortuna.SeedFileLength {
-		return []byte{}, fortuna.ErrInvalidSeed
+		return PrivateKey{}, fortuna.ErrInvalidSeed
 	}
 	f, err := fortuna.FromBytesSeed(seed)
 	if err != nil {
-		return []byte{}, err
+		return PrivateKey{}, err
 	}
-	n, err := f.Read(key)
+	n, err := f.Read(key[:])
 	if err != nil {
-		return []byte{}, err
+		return PrivateKey{}, err
 	} else if n != 57 {
-		return []byte{}, fmt.Errorf("not 57 random bytes")
+		return PrivateKey{}, fmt.Errorf("not 57 random bytes")
 	}
-	return key, nil
+	return *key, nil
 }
 
 /* 	How to use

@@ -66,7 +66,7 @@ func TestEdPrivateKeyToX448(t *testing.T) {
 }
 
 func TestSignVerify(t *testing.T) {
-	priv := []byte{
+	priv := PrivateKey{
 		0xb9, 0x3a, 0x28, 0x62, 0x7c, 0xfa, 0x29, 0xfe,
 		0xdb, 0x03, 0xc2, 0x1a, 0xac, 0x0f, 0xaa, 0x1e,
 		0xa0, 0xba, 0x84, 0xc1, 0x0c, 0xef, 0xa0, 0x7c,
@@ -79,58 +79,58 @@ func TestSignVerify(t *testing.T) {
 
 	pub := Ed448DerivePublicKey(priv)
 
-	sig := Ed448Sign(priv, pub[:], []byte{1}, []byte{1}, true)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{1}, false) {
+	sig := Ed448Sign(priv, pub, []byte{1}, []byte{1}, true)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, false) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sig = Ed448Sign(priv, pub[:], []byte{1}, []byte{1}, false)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{1}, true) {
+	sig = Ed448Sign(priv, pub, []byte{1}, []byte{1}, false)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, true) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sig = Ed448Sign(priv, pub[:], []byte{2}, []byte{1}, false)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{1}, false) {
+	sig = Ed448Sign(priv, pub, []byte{2}, []byte{1}, false)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, false) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sig = Ed448Sign(priv, pub[:], []byte{1}, []byte{2}, false)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{1}, false) {
+	sig = Ed448Sign(priv, pub, []byte{1}, []byte{2}, false)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, false) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sig = Ed448Sign(priv, pub[:], []byte{2}, []byte{1}, false)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{2}, false) {
+	sig = Ed448Sign(priv, pub, []byte{2}, []byte{1}, false)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{2}, false) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sig = Ed448Sign(priv, pub[:], []byte{2}, []byte{1}, false)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{1}, false) {
+	sig = Ed448Sign(priv, pub, []byte{2}, []byte{1}, false)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, false) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sig = Ed448Sign(priv, pub[:], []byte{2}, []byte{}, true)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{}, true) {
+	sig = Ed448Sign(priv, pub, []byte{2}, []byte{}, true)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{}, true) {
 		t.Errorf("wrong signature verification")
 	}
 
 	pubb := pub
 	pubb[0] = 0x0
-	sig = Ed448Sign(priv, pubb[:], []byte{1}, []byte{1}, false)
-	if Ed448Verify(sig[:], pubb[:], []byte{1}, []byte{1}, false) {
+	sig = Ed448Sign(priv, pubb, []byte{1}, []byte{1}, false)
+	if Ed448Verify(pubb, sig[:], []byte{1}, []byte{1}, false) {
 		t.Errorf("wrong signature verification")
 	}
 
-	sigg := Ed448Sign(priv, pub[:], []byte{1}, []byte{1}, true)
+	sigg := Ed448Sign(priv, pub, []byte{1}, []byte{1}, true)
 	sigg[0] = 0x0
-	if Ed448Verify(sigg[:], pub[:], []byte{1}, []byte{1}, true) {
+	if Ed448Verify(pub, sigg[:], []byte{1}, []byte{1}, true) {
 		t.Errorf("wrong signature verification")
 	}
 
 	privv := priv
 	privv[0] = 0x0
-	sig = Ed448Sign(privv, pub[:], []byte{1}, []byte{1}, true)
-	if Ed448Verify(sig[:], pub[:], []byte{1}, []byte{1}, true) {
+	sig = Ed448Sign(privv, pub, []byte{1}, []byte{1}, true)
+	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, true) {
 		t.Errorf("wrong signature verification")
 	}
 }
