@@ -1,10 +1,10 @@
-package main
+package goldilocks
 
 import "C"
 
 //#cgo CFLAGS: -I./goldilocks
 //#cgo LDFLAGS: -lgoldilocks -lstdc++
-//#cgo linux,amd64 LDFLAGS:-L${SRCDIR}/lib -lm
+//#cgo linux,amd64 LDFLAGS:-L${SRCDIR}/build/linux-x86_64 -lm
 //#include "ed448.h"
 //#include <stdio.h>
 //#include <string.h>
@@ -12,9 +12,6 @@ import "C"
 import (
 	"fmt"
 	"github.com/core-coin/gofortuna/fortuna"
-	"github.com/mm/go-ethereum/common"
-	"golang.org/x/crypto/sha3"
-	"time"
 	"unsafe"
 )
 
@@ -27,10 +24,8 @@ func EdPublicKeyToX448(edKey []byte) []byte {
 	x := [C.GOLDILOCKS_X448_PUBLIC_BYTES]C.uint8_t{}
 
 	C.memcpy(unsafe.Pointer(&ed[0]), unsafe.Pointer(&edKey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-	//fmt.Println("C Ed Key", ed)
 
 	C.goldilocks_ed448_convert_public_key_to_x448(&x[0], &ed[0])
-	//fmt.Println("C X448 Key", x)
 
 	golangX448Key := [C.GOLDILOCKS_X448_PUBLIC_BYTES]byte{}
 	C.memcpy(unsafe.Pointer(&golangX448Key[0]), unsafe.Pointer(&x[0]), C.GOLDILOCKS_X448_PUBLIC_BYTES)
@@ -47,10 +42,8 @@ func EdPrivateKeyToX448(edKey []byte) []byte {
 	x := [C.GOLDILOCKS_X448_PRIVATE_BYTES]C.uint8_t{}
 
 	C.memcpy(unsafe.Pointer(&ed[0]), unsafe.Pointer(&edKey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-	//fmt.Println("C Ed Key", ed)
 
 	C.goldilocks_ed448_convert_private_key_to_x448(&x[0], &ed[0])
-	//fmt.Println("C X448 Key", x)
 
 	golangX448Key := [C.GOLDILOCKS_X448_PRIVATE_BYTES]byte{}
 	C.memcpy(unsafe.Pointer(&golangX448Key[0]), unsafe.Pointer(&x[0]), C.GOLDILOCKS_X448_PRIVATE_BYTES)
@@ -96,6 +89,7 @@ func Ed448Verify(signature, pubkey, message, context []byte, prehashed bool) boo
 }
 
 func Ed448DeriveSecret() {
+	panic("TODO")
 }
 
 //TODO try golang array to func
@@ -169,44 +163,46 @@ func Ed448GenerateKey(seed []byte) ([]byte, error) {
 	}
 	return key, nil
 }
-func main() {
-	testKey := "b93a28627cfa29fedb03c21aac0faa1ea0ba84c10cefa07c938f2e0adbf996f02c8d00e39695dfb6a0636c8bcb21645b06a869dfbbb489ef00"
-	//golangHexEdKey := "6ada368e2799a55b9eb0e41e711d22af2569cf838656049635ba0ae4f344e180ce0e6b8f753df6d9de8aaf7ded0c8f61d93d4f29810098b780"
-	//fmt.Println("Golang Ed Hex Key", golangHexEdKey)
 
-	golangEdKey := common.Hex2Bytes(testKey)
-	//fmt.Println("Golang Ed Key", golangEdKey)
+/* 	How to use
 
-	golangX448Key := EdPublicKeyToX448(golangEdKey)
+testKey := "b93a28627cfa29fedb03c21aac0faa1ea0ba84c10cefa07c938f2e0adbf996f02c8d00e39695dfb6a0636c8bcb21645b06a869dfbbb489ef00"
+//golangHexEdKey := "6ada368e2799a55b9eb0e41e711d22af2569cf838656049635ba0ae4f344e180ce0e6b8f753df6d9de8aaf7ded0c8f61d93d4f29810098b780"
+//fmt.Println("Golang Ed Hex Key", golangHexEdKey)
 
-	fmt.Println("Golang X448 Key", golangX448Key)
+golangEdKey := common.Hex2Bytes(testKey)
+//fmt.Println("Golang Ed Key", golangEdKey)
 
-	fmt.Println("Golang X448 Hex Key", common.Bytes2Hex(golangX448Key[:]))
+golangX448Key := EdPublicKeyToX448(golangEdKey)
 
-	golangPrivHexEdKey := "bd6cf469833692c5bf9bb68b8fdb9a0a4c70b01c2162eaceec3c669ccbdcabfe01eee57fe1ad942c98e840b4bf87ad05d3d5db9d794e029955"
-	//fmt.Println("Golang Private Ed Hex Key", golangPrivHexEdKey)
+fmt.Println("Golang X448 Key", golangX448Key)
 
-	golangPrivEdKey := common.Hex2Bytes(golangPrivHexEdKey)
-	//fmt.Println("Golang Private Ed Key", golangPrivEdKey)
+fmt.Println("Golang X448 Hex Key", common.Bytes2Hex(golangX448Key[:]))
 
-	golangPrivX448Key := EdPrivateKeyToX448(golangPrivEdKey)
+golangPrivHexEdKey := "bd6cf469833692c5bf9bb68b8fdb9a0a4c70b01c2162eaceec3c669ccbdcabfe01eee57fe1ad942c98e840b4bf87ad05d3d5db9d794e029955"
+//fmt.Println("Golang Private Ed Hex Key", golangPrivHexEdKey)
 
-	fmt.Println("Golang Private X448 Key", golangPrivX448Key)
+golangPrivEdKey := common.Hex2Bytes(golangPrivHexEdKey)
+//fmt.Println("Golang Private Ed Key", golangPrivEdKey)
 
-	fmt.Println("Golang Private X448 Hex Key", common.Bytes2Hex(golangPrivX448Key[:]))
+golangPrivX448Key := EdPrivateKeyToX448(golangPrivEdKey)
 
-	sig := Ed448Sign(golangPrivEdKey, golangEdKey, []byte{1}, []byte{1}, true)
-	fmt.Println(sig)
-	//sig[0] = 0x1
-	fmt.Println("verify: ", Ed448Verify(sig[:], golangEdKey, []byte{1}, []byte{1}, false))
+fmt.Println("Golang Private X448 Key", golangPrivX448Key)
 
-	derivedKey := Ed448DerivePublicKey(golangPrivEdKey)
-	//fmt.Println("primary pub", golangHexEdKey)
-	fmt.Println("derived", common.Bytes2Hex(derivedKey[:]))
+fmt.Println("Golang Private X448 Hex Key", common.Bytes2Hex(golangPrivX448Key[:]))
 
-	hash := sha3.NewLegacyKeccak512()
-	timeB, err := time.Now().MarshalBinary()
-	_, err = hash.Write(timeB)
-	asd, err := Ed448GenerateKey(hash.Sum(nil))
-	fmt.Println(asd, "err", err)
-}
+sig := Ed448Sign(golangPrivEdKey, golangEdKey, []byte{1}, []byte{1}, true)
+fmt.Println(sig)
+//sig[0] = 0x1
+fmt.Println("verify: ", Ed448Verify(sig[:], golangEdKey, []byte{1}, []byte{1}, false))
+
+derivedKey := Ed448DerivePublicKey(golangPrivEdKey)
+//fmt.Println("primary pub", golangHexEdKey)
+fmt.Println("derived", common.Bytes2Hex(derivedKey[:]))
+
+hash := sha3.NewLegacyKeccak512()
+timeB, err := time.Now().MarshalBinary()
+_, err = hash.Write(timeB)
+asd, err := Ed448GenerateKey(hash.Sum(nil))
+fmt.Println(asd, "err", err)
+*/
