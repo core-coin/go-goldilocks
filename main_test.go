@@ -1,4 +1,4 @@
-package goldilocks
+package main
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 
 func TestEdPublicKeyToX448(t *testing.T) {
 	// b93a28627cfa29fedb03c21aac0faa1ea0ba84c10cefa07c938f2e0adbf996f02c8d00e39695dfb6a0636c8bcb21645b06a869dfbbb489ef00
-	edKey := [57]byte{
+	edKey := PublicKey{
 		0xb9, 0x3a, 0x28, 0x62, 0x7c, 0xfa, 0x29, 0xfe,
 		0xdb, 0x03, 0xc2, 0x1a, 0xac, 0x0f, 0xaa, 0x1e,
 		0xa0, 0xba, 0x84, 0xc1, 0x0c, 0xef, 0xa0, 0x7c,
@@ -28,16 +28,16 @@ func TestEdPublicKeyToX448(t *testing.T) {
 		0x45, 0x90, 0x0b, 0x4d, 0x16, 0x6b, 0x89, 0xb7,
 		0x6f, 0x2d, 0xb5, 0xc3, 0x74, 0x41, 0x11, 0x29,
 	}
-	generatedKey := EdPublicKeyToX448(edKey[:])
+	generatedKey := EdPublicKeyToX448(edKey)
 
-	if bytes.Compare(x448Key[:], generatedKey) != 0 {
+	if bytes.Compare(x448Key[:], generatedKey[:]) != 0 {
 		t.Errorf("converted x448 key must be %x, but it is %x", generatedKey, x448Key)
 	}
 }
 
 func TestEdPrivateKeyToX448(t *testing.T) {
 	// b93a28627cfa29fedb03c21aac0faa1ea0ba84c10cefa07c938f2e0adbf996f02c8d00e39695dfb6a0636c8bcb21645b06a869dfbbb489ef00
-	edKey := [57]byte{
+	edKey := PrivateKey{
 		0xb9, 0x3a, 0x28, 0x62, 0x7c, 0xfa, 0x29, 0xfe,
 		0xdb, 0x03, 0xc2, 0x1a, 0xac, 0x0f, 0xaa, 0x1e,
 		0xa0, 0xba, 0x84, 0xc1, 0x0c, 0xef, 0xa0, 0x7c,
@@ -58,9 +58,9 @@ func TestEdPrivateKeyToX448(t *testing.T) {
 		0x2a, 0x60, 0x52, 0x83, 0xf8, 0x9b, 0x8a, 0xfa,
 		0x52, 0xb0, 0x63, 0x23, 0x70, 0x4d, 0x92, 0x78,
 	}
-	generatedKey := EdPrivateKeyToX448(edKey[:])
+	generatedKey := EdPrivateKeyToX448(edKey)
 
-	if bytes.Compare(x448Key[:], generatedKey) != 0 {
+	if bytes.Compare(x448Key[:], generatedKey[:]) != 0 {
 		t.Errorf("converted x448 key must be %x, but it is %x", generatedKey, x448Key)
 	}
 }
