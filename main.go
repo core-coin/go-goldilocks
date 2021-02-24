@@ -12,7 +12,7 @@ import "C"
 import "C"
 import (
 	"fmt"
-	"github.com/core-coin/gofortuna/fortuna"
+	"io"
 	"unsafe"
 )
 
@@ -189,16 +189,9 @@ func Ed448DerivePublicKey(privkey PrivateKey) PublicKey {
 	return pubkey
 }
 
-func Ed448GenerateKey(seed []byte) (PrivateKey, error) {
+func Ed448GenerateKey(reader io.Reader) (PrivateKey, error) {
 	key := new(PrivateKey)
-	if len(seed) != fortuna.SeedFileLength {
-		return PrivateKey{}, fortuna.ErrInvalidSeed
-	}
-	f, err := fortuna.FromBytesSeed(seed)
-	if err != nil {
-		return PrivateKey{}, err
-	}
-	n, err := f.Read(key[:])
+	n, err := io.ReadFull(reader, key[:])
 	if err != nil {
 		return PrivateKey{}, err
 	} else if n != 57 {
@@ -246,8 +239,8 @@ func main() {
 	hash := sha3.NewLegacyKeccak512()
 	timeB, err := time.Now().MarshalBinary()
 	_, err = hash.Write(timeB)
-	asd, err := Ed448GenerateKey(hash.Sum(nil))
-	fmt.Println(asd, "err", err)
+	asd, err := Ed448GenerateKey(rand.Reader)
+	fmt.Println(asd, "err", err, len(asd))
 
 
 	asdd := Ed448DeriveSecret(BytesToPublicKey(golangEdKey), BytesToPrivateKey(golangPrivEdKey))
