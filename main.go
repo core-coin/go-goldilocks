@@ -93,7 +93,6 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 
 	C.memcpy(unsafe.Pointer(&cSig[0]), unsafe.Pointer(&signature[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
 	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-	C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.ulong(len(message)))
 
 	var success C.goldilocks_error_t
 
@@ -174,7 +173,6 @@ func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, pr
 
 	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-	C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.ulong(len(message)))
 
 	var ctx *C.uint8_t
 	if context != nil && len(context) > 0 {
