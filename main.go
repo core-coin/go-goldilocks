@@ -96,12 +96,25 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 	C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.ulong(len(message)))
 
 	var success C.goldilocks_error_t
+
+	var ctx *C.uint8_t
 	if context != nil && len(context) > 0 {
 		C.memcpy(unsafe.Pointer(&cContext[0]), unsafe.Pointer(&context[0]), C.ulong(len(context)))
-		success = C.goldilocks_ed448_verify(&cSig[0], &cPub[0], &cMessage[0], C.ulong(len(message)), C.uchar(cPrehashed), &cContext[0], C.uchar(len(context)))
+		ctx = &cContext[0]
 	} else {
-		success = C.goldilocks_ed448_verify(&cSig[0], &cPub[0], &cMessage[0], C.ulong(len(message)), C.uchar(cPrehashed), &cPub[0], C.uchar(0))
+		zero := [1]C.uint8_t{}
+		ctx = &zero[0]
 	}
+	var hash *C.uint8_t
+	if message != nil && len(message) > 0 {
+		C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.ulong(len(message)))
+		hash = &cMessage[0]
+	} else {
+		zero := [1]C.uint8_t{}
+		hash = &zero[0]
+	}
+	success = C.goldilocks_ed448_verify(&cSig[0], &cPub[0], hash, C.ulong(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
+
 	if success == -1 {
 		return true
 	}
@@ -162,12 +175,24 @@ func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, pr
 	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
 	C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.ulong(len(message)))
+
+	var ctx *C.uint8_t
 	if context != nil && len(context) > 0 {
 		C.memcpy(unsafe.Pointer(&cContext[0]), unsafe.Pointer(&context[0]), C.ulong(len(context)))
-		C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], &cMessage[0], C.ulong(len(message)), C.uchar(cPrehashed), &cContext[0], C.uchar(len(context)))
+		ctx = &cContext[0]
 	} else {
-		C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], &cMessage[0], C.ulong(len(message)), C.uchar(cPrehashed), &cPub[0], C.uchar(0))
+		zero := [1]C.uint8_t{}
+		ctx = &zero[0]
 	}
+	var hash *C.uint8_t
+	if message != nil && len(message) > 0 {
+		C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.ulong(len(message)))
+		hash = &cMessage[0]
+	} else {
+		zero := [1]C.uint8_t{}
+		hash = &zero[0]
+	}
+	C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], hash, C.ulong(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
 
 	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
 
