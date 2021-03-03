@@ -30,9 +30,9 @@
 #include <stdlib.h>
 #include <string.h> /* for memcpy */
 
-#include <goldilocks/point_448.h>
-#include <goldilocks/ed448.h>
-#include <goldilocks/secure_buffer.hxx>
+#include <./point_448.h>
+#include <./ed448.h>
+#include <./secure_buffer.hxx>
 #include <string>
 #include <sys/types.h>
 #include <limits.h>

@@ -16,6 +16,6 @@
 #ifndef __GOLDILOCKS_CRYPTO_HXX__
 #define __GOLDILOCKS_CRYPTO_HXX__ 1
 
-#include <goldilocks/point_448.hxx>
+#include <./point_448.hxx>
 
 #endif /* __GOLDILOCKS_CRYPTO_HXX__ */

@@ -13,7 +13,7 @@
 #ifndef __GOLDILOCKS_POINT_448_H__
 #define __GOLDILOCKS_POINT_448_H__ 1
 
-#include <goldilocks/common.h>
+#include <./common.h>
 
 #ifdef __cplusplus
 extern "C" {

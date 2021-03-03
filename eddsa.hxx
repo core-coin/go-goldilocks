@@ -22,6 +22,6 @@ namespace goldilocks {
     };
 }
 
-#include <goldilocks/ed448.hxx>
+#include <./ed448.hxx>
 
 #endif /* __GOLDILOCKS_EDDSA_HXX__ */

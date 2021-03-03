@@ -12,8 +12,8 @@
 #ifndef __GOLDILOCKS_SHAKE_HXX__
 #define __GOLDILOCKS_SHAKE_HXX__
 
-#include <goldilocks/shake.h>
-#include <goldilocks/secure_buffer.hxx>
+#include <./shake.h>
+#include <./secure_buffer.hxx>
 #include <sys/types.h>
 
 /** @cond internal */

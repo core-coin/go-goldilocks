@@ -18,11 +18,11 @@
  * @warning Experimental!  The names, parameter orders etc are likely to change.
  */
 
-#include <goldilocks/eddsa.hxx>
-#include <goldilocks/point_448.hxx>
-#include <goldilocks/ed448.h>
+#include <./eddsa.hxx>
+#include <./point_448.hxx>
+#include <./ed448.h>
 
-#include <goldilocks/shake.hxx>
+#include <./shake.hxx>
 
 /** @cond internal */
 #if __cplusplus >= 201103L
