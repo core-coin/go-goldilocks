@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <stdlib.h> /* for NULL */
 
-#include <goldilocks/common.h>
+#include <./common.h>
 
 #ifdef __cplusplus
 extern "C" {

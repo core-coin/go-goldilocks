@@ -13,8 +13,8 @@
 #ifndef __GOLDILOCKS_ED448_H__
 #define __GOLDILOCKS_ED448_H__ 1
 
-#include <goldilocks/point_448.h>
-#include <goldilocks/shake.h>
+#include <./point_448.h>
+#include <./shake.h>
 
 #ifdef __cplusplus
 extern "C" {
