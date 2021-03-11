@@ -194,11 +194,7 @@ func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, pr
 
 	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
 
-	signatureBytes := signature[:]
-
-	signatureBytes = append(signatureBytes, pubkey[:]...)
-
-	copy(signature[:], signatureBytes[:])
+	copy(signature[C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES:], pubkey[:])
 
 	return signature
 }
