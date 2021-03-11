@@ -83,7 +83,7 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 		cPrehashed = 1
 	}
 
-	if len(signature) != C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES {
+	if len(signature) != C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES+C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
 		panic("wrong signature len")
 	}
 
@@ -148,8 +148,8 @@ func Ed448DeriveSecret(pubkey PublicKey, privkey PrivateKey) [C.GOLDILOCKS_X448_
 }
 
 //TODO try golang array to func
-func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
-	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte{}
+func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES + C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte {
+	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES + C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte{}
 
 	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
 	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
@@ -193,6 +193,12 @@ func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, pr
 	C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], hash, C.ulong(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
 
 	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
+
+	signatureBytes := signature[:]
+
+	signatureBytes = append(signatureBytes, pubkey[:]...)
+
+	copy(signature[:], signatureBytes[:])
 
 	return signature
 }
