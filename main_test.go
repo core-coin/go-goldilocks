@@ -78,7 +78,6 @@ func TestSignVerify(t *testing.T) {
 	}
 
 	pub := Ed448DerivePublicKey(priv)
-
 	sig := Ed448Sign(priv, pub, []byte{1}, []byte{1}, true)
 	if Ed448Verify(pub, sig[:], []byte{1}, []byte{1}, false) {
 		t.Errorf("wrong signature verification")
