@@ -4,6 +4,7 @@ import "C"
 
 //#cgo CFLAGS: -I./goldilocks
 //#cgo LDFLAGS: -lgoldilocks -lstdc++
+//#cgo darwin,amd64 LDFLAGS:-L${SRCDIR}/build/macos-x86_64 -lm
 //#cgo linux,amd64 LDFLAGS:-L${SRCDIR}/build/linux-x86_64 -lm
 //#include "ed448.h"
 //#include "point_448.h"
