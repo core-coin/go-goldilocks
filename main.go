@@ -5,6 +5,7 @@ import "C"
 //#cgo CFLAGS: -I./goldilocks
 //#cgo LDFLAGS: -lgoldilocks -lstdc++
 //#cgo linux,amd64 LDFLAGS:-L${SRCDIR}/build/linux-x86_64 -lm
+//#cgo linux,arm64 LDFLAGS:-L${SRCDIR}/build/linux-arm64 -lm
 //#include "ed448.h"
 //#include "point_448.h"
 //#include <stdio.h>
