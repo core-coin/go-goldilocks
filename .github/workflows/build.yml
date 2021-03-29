@@ -18,9 +18,8 @@ jobs:
         uses: actions/checkout@v1
       - name: Test
         run: |
-          git clone https://github.com/trojanfoe/xcodedevtools.git
-          cd xcodedevtools
-          python3 copy_dylibs.py
+          brew update
+          brew upgrade
           go test ./...
       - name: Bump version
         if: github.ref == 'refs/heads/master'
