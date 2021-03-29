@@ -9,7 +9,7 @@ jobs:
     name: Test
     strategy:
       matrix:
-        platform: [ macos-latest ]
+        platform: [ubuntu-latest, macos-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
         - name: Setup
