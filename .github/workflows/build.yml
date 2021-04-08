@@ -1,15 +1,11 @@
-name: Build
-on:
-  push:
-    branches:
-      - master
+name: go-goldilocks pipeline
+on: [push]
 
 jobs:
   test:
-    name: Test
     strategy:
       matrix:
-        platform: [ ubuntu-latest ]
+        platform: [ ubuntu-latest, raspbian-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
         - name: Setup
@@ -20,13 +16,18 @@ jobs:
         - name: Checkout
           uses: actions/checkout@v1
         - name: Test
-          run: go test ./...
-        - name: Bump version
-          if: github.ref == 'refs/heads/master'
-          id: version_bump
-          uses: anothrNick/github-tag-action@1.13.0
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            DEFAULT_BUMP: "patch"
-            RELEASE_BRANCHES: "master"
-            WITH_V: true
+          run: go test -v
+  tag:
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Bump version
+        uses: anothrNick/github-tag-action@1.13.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: "patch"
+          RELEASE_BRANCHES: "master"
+          WITH_V: true
