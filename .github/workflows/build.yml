@@ -15,9 +15,11 @@ jobs:
           id: go
         - name: Checkout
           uses: actions/checkout@v1
+        - name: Version
+          if: ${{ matrix.platform == 'macos-latest' }}
+          run: system_profiler SPSoftwareDataType
         - name: Test
           run: |
-           system_profiler SPSoftwareDataType
            go test -v
   tag:
     needs: [test]
