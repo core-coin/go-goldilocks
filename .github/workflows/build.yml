@@ -5,7 +5,7 @@ jobs:
   test:
     strategy:
       matrix:
-        platform: [ ubuntu-latest, raspbian-latest, macos-11.0 ]
+        platform: [ ubuntu-latest, raspbian-latest, macos-private ]
     runs-on: ${{ matrix.platform }}
     steps:
         - name: Setup
@@ -15,12 +15,8 @@ jobs:
           id: go
         - name: Checkout
           uses: actions/checkout@v1
-        - name: Version
-          if: ${{ matrix.platform == 'macos-latest' }}
-          run: system_profiler SPSoftwareDataType
         - name: Test
-          run: |
-           go test -v
+          run: go test -v
   tag:
     needs: [test]
     runs-on: ubuntu-latest
