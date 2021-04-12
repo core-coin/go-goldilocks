@@ -16,7 +16,9 @@ jobs:
         - name: Checkout
           uses: actions/checkout@v1
         - name: Test
-          run: go test -v
+          run: |
+           uname -a 
+           go test -v
   tag:
     needs: [test]
     runs-on: ubuntu-latest
