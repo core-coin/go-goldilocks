@@ -13,8 +13,8 @@
 #ifndef __GOLDILOCKS_ED448_H__
 #define __GOLDILOCKS_ED448_H__ 1
 
-#include <goldilocks/point_448.h>
-#include <goldilocks/shake.h>
+#include <./point_448.h>
+#include <./shake.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -259,7 +259,6 @@ void goldilocks_ed448_convert_private_key_to_x448 (
     uint8_t x[GOLDILOCKS_X448_PRIVATE_BYTES],
     const uint8_t ed[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]
 ) GOLDILOCKS_API_VIS GOLDILOCKS_NONNULL GOLDILOCKS_NOINLINE;
-
 void goldilocks_ed448_private_to_secretkey (
     uint8_t secretkey[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES],
     const uint8_t privkey[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]
