@@ -28,6 +28,7 @@ func BytesToPublicKey(key []byte) (pk PublicKey) {
 	return
 }
 
+// Use it only for tests please
 func BytesToPrivateKey(key []byte) (pk PrivateKey) {
 	if len(key) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
 		return PrivateKey{}
@@ -68,7 +69,13 @@ func EdPrivateKeyToX448(edKey PrivateKey) [C.GOLDILOCKS_X448_PRIVATE_BYTES]byte 
 
 	golangX448Key := [C.GOLDILOCKS_X448_PRIVATE_BYTES]byte{}
 	C.memcpy(unsafe.Pointer(&golangX448Key[0]), unsafe.Pointer(&x[0]), C.GOLDILOCKS_X448_PRIVATE_BYTES)
-
+	
+	// erasing all secret data
+	zeroEd := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	copy(ed[:], zeroEd[:])
+	zeroX := [C.GOLDILOCKS_X448_PRIVATE_BYTES]C.uint8_t{}
+	copy(x[:], zeroX[:])
+	
 	return golangX448Key
 }
 
@@ -144,6 +151,12 @@ func Ed448DeriveSecret(pubkey PublicKey, privkey PrivateKey) [C.GOLDILOCKS_X448_
 	C.goldilocks_x448(&cSecret[0], &cX448Pub[0], &cX448Priv[0])
 
 	C.memcpy(unsafe.Pointer(&secret[0]), unsafe.Pointer(&cSecret[0]), C.GOLDILOCKS_X448_PUBLIC_BYTES)
+	
+	// erasing all secret data
+	zeroPriv := [C.GOLDILOCKS_X448_PRIVATE_BYTES]C.uint8_t{}
+	copy(cX448Priv[:], zeroPriv[:])
+	zeroSecret := [C.GOLDILOCKS_X448_PUBLIC_BYTES]C.uint8_t{}
+	copy(cSecret[:], zeroSecret[:])
 
 	return secret
 }
@@ -194,6 +207,10 @@ func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, pr
 	C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
 
 	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
+	
+	// erasing all secret data
+	cPrivZero := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	copy(cPriv[:], cPrivZero[:])
 
 	return signature
 }
@@ -209,6 +226,10 @@ func Ed448DerivePublicKey(privkey PrivateKey) PublicKey {
 	C.goldilocks_ed448_derive_public_key(&cPub[0], &cPriv[0])
 
 	C.memcpy(unsafe.Pointer(&pubkey[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
+	
+	// erasing all secret data
+	cPrivZero := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	copy(cPriv[:], cPrivZero[:])
 
 	return pubkey
 }
