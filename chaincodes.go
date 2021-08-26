@@ -1,9 +1,6 @@
 package goldilocks
 
 import (
-	"fmt"
-
-	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/sha3"
 )
