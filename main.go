@@ -19,7 +19,8 @@ import (
 
 type PublicKey [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte
 type PrivateKey [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]byte
-type SecretKey [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]byte
+
+// SLICES TO KEYS
 
 func BytesToPublicKey(key []byte) (pk PublicKey) {
 	if len(key) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
@@ -36,6 +37,8 @@ func BytesToPrivateKey(key []byte) (pk PrivateKey) {
 	copy(pk[:], key)
 	return
 }
+
+// DIFFIE-HELLMAN SHARED SECRET
 
 func EdPublicKeyToX448(edKey PublicKey) [C.GOLDILOCKS_X448_PUBLIC_BYTES]byte {
 	if len(edKey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
@@ -72,6 +75,253 @@ func EdPrivateKeyToX448(edKey PrivateKey) [C.GOLDILOCKS_X448_PRIVATE_BYTES]byte 
 
 	return golangX448Key
 }
+
+func Ed448DeriveSecret(pubkey PublicKey, privkey PrivateKey) [C.GOLDILOCKS_X448_PUBLIC_BYTES]byte {
+	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong privkey len")
+	}
+
+	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
+		panic("wrong pubkey len")
+	}
+
+	var x448Priv = [56]byte{0}
+	if privkey[57-1]&0x80 == 0x00 {
+		x448Priv = EdPrivateKeyToX448(privkey)
+	} else {
+		copy(x448Priv[:], privkey[0:56])
+	}
+	
+	x448Pub := EdPublicKeyToX448(pubkey)
+	secret := [C.GOLDILOCKS_X448_PUBLIC_BYTES]byte{}
+
+	cX448Priv := [C.GOLDILOCKS_X448_PRIVATE_BYTES]C.uint8_t{}
+	cX448Pub := [C.GOLDILOCKS_X448_PUBLIC_BYTES]C.uint8_t{}
+	cSecret := [C.GOLDILOCKS_X448_PUBLIC_BYTES]C.uint8_t{}
+
+	C.memcpy(unsafe.Pointer(&cX448Priv[0]), unsafe.Pointer(&x448Priv[0]), C.GOLDILOCKS_X448_PRIVATE_BYTES)
+	C.memcpy(unsafe.Pointer(&cX448Pub[0]), unsafe.Pointer(&x448Pub[0]), C.GOLDILOCKS_X448_PUBLIC_BYTES)
+
+	C.goldilocks_x448(&cSecret[0], &cX448Pub[0], &cX448Priv[0])
+
+	C.memcpy(unsafe.Pointer(&secret[0]), unsafe.Pointer(&cSecret[0]), C.GOLDILOCKS_X448_PUBLIC_BYTES)
+
+	return secret
+}
+
+// PRIVATE, SECRET AND PUBLIC
+
+func PrivateToSecret(privkey PrivateKey) PrivateKey {
+	var secretkey PrivateKey
+
+	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	cSec := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	
+	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong extkey len")
+	}
+	
+	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+
+	C.goldilocks_ed448_private_to_secretkey(&cSec[0], &cPriv[0])
+
+	C.memcpy(unsafe.Pointer(&secretkey[0]), unsafe.Pointer(&cSec[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+
+	return secretkey
+}
+
+func SecretToPublic(secretkey PrivateKey) PublicKey {
+	var pubkey PublicKey
+
+	cSec := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
+
+	if len(secretkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong extkey len")
+	}
+
+	C.memcpy(unsafe.Pointer(&cSec[0]), unsafe.Pointer(&secretkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+	
+	// Clamp is now here, becasuse secret bits are not set
+	cSec[0] &= 0xfc
+	cSec[57-1] = 0
+	cSec[57-2] |= 0x80
+
+	C.goldilocks_ed448_derive_public_key_from_secretkey(&cPub[0], &cSec[0])
+
+	C.memcpy(unsafe.Pointer(&pubkey[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
+
+	return pubkey
+}
+
+
+func PrivateToPublic(privkey PrivateKey) PublicKey {
+	var pubkey PublicKey
+
+	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
+
+	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong extkey len")
+	}
+
+	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+
+	C.goldilocks_ed448_derive_public_key(&cPub[0], &cPriv[0])
+
+	C.memcpy(unsafe.Pointer(&pubkey[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
+
+	return pubkey
+}
+
+func Ed448DerivePublicKey(privkey PrivateKey) PublicKey {
+	if privkey[57-1]&0x80 == 0x00 {
+		return PrivateToPublic(privkey)
+	} else {
+		var sk PrivateKey
+		copy(sk[:], privkey[:])
+		sk[0] &= 0xfc
+		sk[57-1] = 0
+		sk[57-2] |= 0x80
+		return SecretToPublic(sk)
+	}
+}
+
+// CREATE SIGNATURE
+
+//TODO try golang array to func
+func SignWithPrivate(privkey PrivateKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
+	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte{}
+
+	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
+	cSig := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]C.uint8_t{}
+
+	cMessage := make([]C.uint8_t, len(message))
+	cContext := make([]C.uint8_t, len(context))
+
+	var cPrehashed uint8
+	if prehashed {
+		cPrehashed = 1
+	}
+
+	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong privkey len")
+	}
+
+	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
+		panic("wrong pubkey len")
+	}
+
+	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
+
+	var ctx *C.uint8_t
+	if context != nil && len(context) > 0 {
+		C.memcpy(unsafe.Pointer(&cContext[0]), unsafe.Pointer(&context[0]), C.size_t(len(context)))
+		ctx = &cContext[0]
+	} else {
+		zero := [1]C.uint8_t{}
+		ctx = &zero[0]
+	}
+	var hash *C.uint8_t
+	if message != nil && len(message) > 0 {
+		C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.size_t(len(message)))
+		hash = &cMessage[0]
+	} else {
+		zero := [1]C.uint8_t{}
+		hash = &zero[0]
+	}
+	C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
+
+	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
+
+	return signature
+}
+
+func SignSecretAndNonce(secretkey PrivateKey, nonce PrivateKey, pubkey PublicKey, message []byte) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
+	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte{}
+
+	context := []byte{}
+	prehashed := false
+
+	cSec := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	cNon := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
+	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
+	cSig := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]C.uint8_t{}
+
+	cMessage := make([]C.uint8_t, len(message))
+	cContext := make([]C.uint8_t, len(context))
+
+	var cPrehashed uint8
+	if prehashed {
+		cPrehashed = 1
+	}
+	
+	if len(secretkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong extkey len")
+	}
+	if len(nonce) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
+		panic("wrong nonce len")
+	}
+	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
+		panic("wrong pubkey len")
+	}
+
+	C.memcpy(unsafe.Pointer(&cSec[0]), unsafe.Pointer(&secretkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+	C.memcpy(unsafe.Pointer(&cNon[0]), unsafe.Pointer(&nonce[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
+	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
+	
+	// Clamp is now here, becasuse secret bits are not set
+	cSec[0] &= 0xfc
+	cSec[57-1] = 0
+	cSec[57-2] |= 0x80
+
+	var ctx *C.uint8_t
+	if context != nil && len(context) > 0 {
+		C.memcpy(unsafe.Pointer(&cContext[0]), unsafe.Pointer(&context[0]), C.size_t(len(context)))
+		ctx = &cContext[0]
+	} else {
+		zero := [1]C.uint8_t{}
+		ctx = &zero[0]
+	}
+	var hash *C.uint8_t
+	if message != nil && len(message) > 0 {
+		C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.size_t(len(message)))
+		hash = &cMessage[0]
+	} else {
+		zero := [1]C.uint8_t{}
+		hash = &zero[0]
+	}
+	C.goldilocks_ed448_sign_with_secretkey_and_prenonce(&cSig[0], &cSec[0], &cNon[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
+
+	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
+
+	return signature
+}
+
+func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
+	if privkey[57-1]&0x80 == 0x00 {
+		return SignWithPrivate(privkey, pubkey, message, context, prehashed)
+	} else {
+		if len(context) != 0 {
+			panic("Context is not supported!")
+		}
+		if prehashed {
+			panic("Prehashing is not supported!")
+		}
+		var sk PrivateKey
+		copy(sk[:], privkey[:])
+		sk[0] &= 0xfc
+		sk[57-1] = 0
+		sk[57-2] |= 0x80
+		
+		return SignSecretAndNonce(sk, sk, pubkey, message)
+	}
+}
+
+
+// VERIFY SIGNATURE
 
 func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed bool) bool {
 	cSig := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]C.uint8_t{}
@@ -122,194 +372,9 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 	return false
 }
 
-func Ed448DeriveSecret(pubkey PublicKey, privkey PrivateKey) [C.GOLDILOCKS_X448_PUBLIC_BYTES]byte {
-	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong privkey len")
-	}
+// ADD TWO PUBLIC KEYS (FOR HDwallet)
 
-	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
-		panic("wrong pubkey len")
-	}
-
-	x448Priv := EdPrivateKeyToX448(privkey)
-	x448Pub := EdPublicKeyToX448(pubkey)
-	secret := [C.GOLDILOCKS_X448_PUBLIC_BYTES]byte{}
-
-	cX448Priv := [C.GOLDILOCKS_X448_PRIVATE_BYTES]C.uint8_t{}
-	cX448Pub := [C.GOLDILOCKS_X448_PUBLIC_BYTES]C.uint8_t{}
-	cSecret := [C.GOLDILOCKS_X448_PUBLIC_BYTES]C.uint8_t{}
-
-	C.memcpy(unsafe.Pointer(&cX448Priv[0]), unsafe.Pointer(&x448Priv[0]), C.GOLDILOCKS_X448_PRIVATE_BYTES)
-	C.memcpy(unsafe.Pointer(&cX448Pub[0]), unsafe.Pointer(&x448Pub[0]), C.GOLDILOCKS_X448_PUBLIC_BYTES)
-
-	C.goldilocks_x448(&cSecret[0], &cX448Pub[0], &cX448Priv[0])
-
-	C.memcpy(unsafe.Pointer(&secret[0]), unsafe.Pointer(&cSecret[0]), C.GOLDILOCKS_X448_PUBLIC_BYTES)
-
-	return secret
-}
-
-//TODO try golang array to func
-func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
-	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte{}
-
-	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
-	cSig := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]C.uint8_t{}
-
-	cMessage := make([]C.uint8_t, len(message))
-	cContext := make([]C.uint8_t, len(context))
-
-	var cPrehashed uint8
-	if prehashed {
-		cPrehashed = 1
-	}
-
-	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong privkey len")
-	}
-
-	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
-		panic("wrong pubkey len")
-	}
-
-	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-
-	var ctx *C.uint8_t
-	if context != nil && len(context) > 0 {
-		C.memcpy(unsafe.Pointer(&cContext[0]), unsafe.Pointer(&context[0]), C.size_t(len(context)))
-		ctx = &cContext[0]
-	} else {
-		zero := [1]C.uint8_t{}
-		ctx = &zero[0]
-	}
-	var hash *C.uint8_t
-	if message != nil && len(message) > 0 {
-		C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.size_t(len(message)))
-		hash = &cMessage[0]
-	} else {
-		zero := [1]C.uint8_t{}
-		hash = &zero[0]
-	}
-	C.goldilocks_ed448_sign(&cSig[0], &cPriv[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
-
-	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
-
-	return signature
-}
-
-func Ed448DerivePublicKey(privkey PrivateKey) PublicKey {
-	pubkey := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte{}
-
-	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
-
-	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong extkey len")
-	}
-
-	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-
-	C.goldilocks_ed448_derive_public_key(&cPub[0], &cPriv[0])
-
-	C.memcpy(unsafe.Pointer(&pubkey[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-
-	return pubkey
-}
-
-func Ed448PrivateKeyToSecret(privkey PrivateKey) SecretKey {
-	secretkey := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]byte{}
-
-	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	cSec := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	
-	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong extkey len")
-	}
-	
-	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-
-	C.goldilocks_ed448_private_to_secretkey(&cSec[0], &cPriv[0])
-
-	C.memcpy(unsafe.Pointer(&secretkey[0]), unsafe.Pointer(&cSec[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-
-	return secretkey
-}
-
-func Ed448DerivePublicKeyFromSecret(secretkey SecretKey) PublicKey {
-	pubkey := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte{}
-
-	cSec := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
-
-	if len(secretkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong extkey len")
-	}
-
-	C.memcpy(unsafe.Pointer(&cSec[0]), unsafe.Pointer(&secretkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-
-	C.goldilocks_ed448_derive_public_key_from_secretkey(&cPub[0], &cSec[0])
-
-	C.memcpy(unsafe.Pointer(&pubkey[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-
-	return pubkey
-}
-
-func Ed448SignWithSecretAndNonce(secretkey SecretKey, nonce SecretKey, pubkey PublicKey, message, context []byte, prehashed bool) [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte {
-	signature := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]byte{}
-
-	cSec := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	cNon := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
-	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
-	cSig := [C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES]C.uint8_t{}
-
-	cMessage := make([]C.uint8_t, len(message))
-	cContext := make([]C.uint8_t, len(context))
-
-	var cPrehashed uint8
-	if prehashed {
-		cPrehashed = 1
-	}
-	
-	if len(secretkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong extkey len")
-	}
-	if len(nonce) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
-		panic("wrong nonce len")
-	}
-	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
-		panic("wrong pubkey len")
-	}
-
-	C.memcpy(unsafe.Pointer(&cSec[0]), unsafe.Pointer(&secretkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-	C.memcpy(unsafe.Pointer(&cNon[0]), unsafe.Pointer(&nonce[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
-	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-
-	var ctx *C.uint8_t
-	if context != nil && len(context) > 0 {
-		C.memcpy(unsafe.Pointer(&cContext[0]), unsafe.Pointer(&context[0]), C.size_t(len(context)))
-		ctx = &cContext[0]
-	} else {
-		zero := [1]C.uint8_t{}
-		ctx = &zero[0]
-	}
-	var hash *C.uint8_t
-	if message != nil && len(message) > 0 {
-		C.memcpy(unsafe.Pointer(&cMessage[0]), unsafe.Pointer(&message[0]), C.size_t(len(message)))
-		hash = &cMessage[0]
-	} else {
-		zero := [1]C.uint8_t{}
-		hash = &zero[0]
-	}
-	C.goldilocks_ed448_sign_with_secretkey_and_prenonce(&cSig[0], &cSec[0], &cNon[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
-
-	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
-
-	return signature
-}
-
-func Ed448AddTwoPublicKeys(pub1 PublicKey, pub2 PublicKey) PublicKey {
+func AddTwoPublic(pub1 PublicKey, pub2 PublicKey) PublicKey {
 
 	var pub PublicKey
 	
@@ -333,6 +398,8 @@ func Ed448AddTwoPublicKeys(pub1 PublicKey, pub2 PublicKey) PublicKey {
 
 	return pub
 }
+
+// GENERATE PRIVATE KEY
 
 func Ed448GenerateKey(reader io.Reader) (PrivateKey, error) {
 	key := new(PrivateKey)
