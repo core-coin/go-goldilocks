@@ -30,6 +30,7 @@ func BytesToPublicKey(key []byte) (pk PublicKey) {
 	return
 }
 
+// Use it only for tests please
 func BytesToPrivateKey(key []byte) (pk PrivateKey) {
 	if len(key) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
 		return PrivateKey{}
@@ -102,7 +103,7 @@ func Ed448DeriveSecret(pubkey PublicKey, privkey PrivateKey) [C.GOLDILOCKS_X448_
 	} else {
 		copy(x448Priv[:], privkey[0:56])
 	}
-	
+
 	// x448Pub from public
 	x448Pub := EdPublicKeyToX448(pubkey)
 
@@ -310,11 +311,11 @@ func SignSecretAndNonce(secretkey PrivateKey, nonce PrivateKey, pubkey PublicKey
 	if prehashed {
 		cPrehashed = 1
 	}
-	
+
 	C.memcpy(unsafe.Pointer(&cSec[0]), unsafe.Pointer(&secretkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 	C.memcpy(unsafe.Pointer(&cNon[0]), unsafe.Pointer(&nonce[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 	C.memcpy(unsafe.Pointer(&cPub[0]), unsafe.Pointer(&pubkey[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-	
+
 	// Clamp secret
 	cSec[0] &= 0xfc
 	cSec[57-1] = 0
@@ -337,7 +338,6 @@ func SignSecretAndNonce(secretkey PrivateKey, nonce PrivateKey, pubkey PublicKey
 		hash = &zero[0]
 	}
 	C.goldilocks_ed448_sign_with_secretkey_and_prenonce(&cSig[0], &cSec[0], &cNon[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
-
 	C.memcpy(unsafe.Pointer(&signature[0]), unsafe.Pointer(&cSig[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)
 
 	// Erasing temporary values of private keys
@@ -421,7 +421,6 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 		hash = &zero[0]
 	}
 	success = C.goldilocks_ed448_verify(&cSig[0], &cPub[0], hash, C.size_t(len(message)), C.uchar(cPrehashed), ctx, C.uchar(len(context)))
-
 	if success == -1 {
 		return true
 	}
@@ -433,7 +432,7 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 func AddTwoPublic(pub1 PublicKey, pub2 PublicKey) PublicKey {
 
 	var pub PublicKey
-	
+
 	if len(pub1) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
 		panic("wrong extkey len")
 	}
@@ -452,7 +451,6 @@ func AddTwoPublic(pub1 PublicKey, pub2 PublicKey) PublicKey {
 	C.goldilocks_ed448_add_two_publickeys(&cPub[0], &cPub1[0], &cPub2[0])
 
 	C.memcpy(unsafe.Pointer(&pub[0]), unsafe.Pointer(&cPub[0]), C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES)
-
 	return pub
 }
 
