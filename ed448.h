@@ -259,6 +259,33 @@ void goldilocks_ed448_convert_private_key_to_x448 (
     uint8_t x[GOLDILOCKS_X448_PRIVATE_BYTES],
     const uint8_t ed[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]
 ) GOLDILOCKS_API_VIS GOLDILOCKS_NONNULL GOLDILOCKS_NOINLINE;
+void goldilocks_ed448_private_to_secretkey (
+    uint8_t secretkey[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES],
+    const uint8_t privkey[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]
+) GOLDILOCKS_API_VIS GOLDILOCKS_NONNULL GOLDILOCKS_NOINLINE;
+
+void goldilocks_ed448_sign_with_secretkey_and_prenonce (
+    uint8_t signature[GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES],
+    const uint8_t secretkey[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES],
+    const uint8_t seed[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES],
+    const uint8_t pubkey[GOLDILOCKS_EDDSA_448_PUBLIC_BYTES],
+    const uint8_t *message,
+    size_t message_len,
+    uint8_t prehashed,
+    const uint8_t *context,
+    uint8_t context_len
+) GOLDILOCKS_API_VIS __attribute__((nonnull(1,2,3,4))) GOLDILOCKS_NOINLINE;
+
+void goldilocks_ed448_derive_public_key_from_secretkey (
+    uint8_t pubkey[GOLDILOCKS_EDDSA_448_PUBLIC_BYTES],
+    const uint8_t secretkey[GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]
+) GOLDILOCKS_API_VIS GOLDILOCKS_NONNULL GOLDILOCKS_NOINLINE;
+
+void goldilocks_ed448_add_two_publickeys (
+    uint8_t pubkey[GOLDILOCKS_EDDSA_448_PUBLIC_BYTES],
+    const uint8_t publickey1[GOLDILOCKS_EDDSA_448_PUBLIC_BYTES],
+    const uint8_t publickey2[GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]
+) GOLDILOCKS_API_VIS GOLDILOCKS_NONNULL GOLDILOCKS_NOINLINE; 
 
 #ifdef __cplusplus
 } /* extern "C" */
