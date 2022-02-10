@@ -25,9 +25,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Bump version
+        id: version_bump
         uses: anothrNick/github-tag-action@1.13.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEFAULT_BUMP: "patch"
           RELEASE_BRANCHES: "master"
           WITH_V: true
+      - name: Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          tag_name: ${{steps.version_bump.outputs.tag}}
+          release_name: go-goldilocks ${{steps.version_bump.outputs.tag}}
+          draft: false
+          prerelease: false
