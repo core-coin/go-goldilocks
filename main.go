@@ -3,6 +3,7 @@ package goldilocks
 //#cgo CFLAGS: -I./goldilocks
 //#cgo LDFLAGS: -lgoldilocks
 //#cgo darwin,amd64 LDFLAGS:-L${SRCDIR}/build/darwin-x86_64
+//#cgo darwin,arm64 LDFLAGS:-L${SRCDIR}/build/darwin-arm64
 //#cgo linux,amd64 LDFLAGS:-L${SRCDIR}/build/linux-x86_64
 //#cgo linux,arm64 LDFLAGS:-L${SRCDIR}/build/linux-arm64
 //#cgo windows,amd64 LDFLAGS:-L${SRCDIR}/build/windows-x86_64
@@ -192,14 +193,13 @@ func SecretToPublic(secretkey PrivateKey) PublicKey {
 	return pubkey
 }
 
-
 func PrivateToPublic(privkey PrivateKey) PublicKey {
 
 	if len(privkey) != C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES {
 		panic("wrong extkey len")
 	}
 
-	// private -> C	
+	// private -> C
 	cPriv := [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]C.uint8_t{}
 	C.memcpy(unsafe.Pointer(&cPriv[0]), unsafe.Pointer(&privkey[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 
@@ -345,7 +345,6 @@ func SignSecretAndNonce(secretkey PrivateKey, nonce PrivateKey, pubkey PublicKey
 	C.memcpy(unsafe.Pointer(&cSec[0]), unsafe.Pointer(&sZero[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 	C.memcpy(unsafe.Pointer(&cNon[0]), unsafe.Pointer(&sZero[0]), C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES)
 
-
 	return signature
 }
 
@@ -371,11 +370,10 @@ func Ed448Sign(privkey PrivateKey, pubkey PublicKey, message, context []byte, pr
 		// Erasing temporary values of private keys
 		var sZero = PrivateKey{0}
 		copy(sk[:], sZero[:])
-		
+
 		return sig
 	}
 }
-
 
 // VERIFY SIGNATURE
 
@@ -439,7 +437,7 @@ func AddTwoPublic(pub1 PublicKey, pub2 PublicKey) PublicKey {
 	if len(pub2) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
 		panic("wrong extkey len")
 	}
-	
+
 	cPub1 := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
 	cPub2 := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
 	cPub := [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]C.uint8_t{}
