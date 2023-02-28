@@ -1,4 +1,4 @@
-package go_goldilocks
+package goldilocks
 
 //#cgo CFLAGS: -I./goldilocks
 //#cgo LDFLAGS: -lgoldilocks

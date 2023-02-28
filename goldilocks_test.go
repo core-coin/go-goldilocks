@@ -1,4 +1,4 @@
-package go_goldilocks
+package goldilocks
 
 import (
 	"bytes"
