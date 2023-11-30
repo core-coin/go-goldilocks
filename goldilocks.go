@@ -21,6 +21,17 @@ import (
 type PublicKey [C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES]byte
 type PrivateKey [C.GOLDILOCKS_EDDSA_448_PRIVATE_BYTES]byte
 
+// UTILS
+
+func IsZerosBuffer(buffer []byte) bool {
+	for _, b := range buffer {
+		if b != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // SLICES TO KEYS
 
 func BytesToPublicKey(key []byte) (pk PublicKey) {
@@ -395,6 +406,10 @@ func Ed448Verify(pubkey PublicKey, signature, message, context []byte, prehashed
 
 	if len(pubkey) != C.GOLDILOCKS_EDDSA_448_PUBLIC_BYTES {
 		panic("wrong pubkey len")
+	}
+
+	if IsZerosBuffer(signature[:]) || IsZerosBuffer(pubkey[:]) {
+		return false
 	}
 
 	C.memcpy(unsafe.Pointer(&cSig[0]), unsafe.Pointer(&signature[0]), C.GOLDILOCKS_EDDSA_448_SIGNATURE_BYTES)

@@ -294,6 +294,19 @@ func TestSignVerify(t *testing.T) {
 		t.Errorf("Signature must be valid")
 	}
 
+	var emptyPub PublicKey
+	if Ed448Verify(emptyPub, sig[:], []byte{1}, []byte{}, false) {
+		t.Errorf("wrong signature verification")
+	}
+
+	var emptySig [114]byte
+	if Ed448Verify(pub, emptySig[:], []byte{1}, []byte{}, false) {
+		t.Errorf("wrong signature verification")
+	}
+
+	if Ed448Verify(emptyPub, emptySig[:], []byte{1}, []byte{}, false) {
+		t.Errorf("wrong signature verification")
+	}
 }
 
 func TestAddTwoPublic(t *testing.T) {
