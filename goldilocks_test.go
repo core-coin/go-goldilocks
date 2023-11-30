@@ -303,6 +303,10 @@ func TestSignVerify(t *testing.T) {
 	if Ed448Verify(pub, emptySig[:], []byte{1}, []byte{}, false) {
 		t.Errorf("wrong signature verification")
 	}
+
+	if Ed448Verify(emptyPub, emptySig[:], []byte{1}, []byte{}, false) {
+		t.Errorf("wrong signature verification")
+	}
 }
 
 func TestAddTwoPublic(t *testing.T) {
