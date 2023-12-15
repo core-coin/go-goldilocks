@@ -1,3 +1,3 @@
 module github.com/core-coin/go-goldilocks
 
-go 1.19
+go 1.21
