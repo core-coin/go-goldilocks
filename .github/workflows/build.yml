@@ -40,7 +40,7 @@ jobs:
         config:
           - {arch: x86_64, branch: latest-stable}
           - {arch: aarch64, branch: latest-stable}
-    runs-in: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
         - name: Checkout
           uses: actions/checkout@v4
