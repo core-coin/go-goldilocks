@@ -1,24 +1,63 @@
 name: go-goldilocks pipeline
-on: [push]
-
+on: push
 jobs:
-  test:
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, windows-latest, raspbian-private, macos-latest]
-    runs-on: ${{ matrix.platform }}
+
+  test-windows:
+    runs-on: windows-latest
     steps:
+        - name: Checkout
+          uses: actions/checkout@v4
         - name: Setup
           uses: actions/setup-go@v1
           with:
-            go-version: 1.21.x
-          id: go
-        - name: Checkout
-          uses: actions/checkout@v1
+            go-version: 1.23
         - name: Test
           run: go test -v
-  tag:
-    needs: test
+
+  test-darwin:
+    strategy:
+      matrix:
+        config:
+          - {os: macos-latest, arch: arm64}
+          - {os: macos-13, arch: amd64}
+    runs-on: ${{ matrix.config.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.23
+      - name: Test
+        run: |
+          export GOARCH=${{ matrix.config.arch }}
+          export GOOS=darwin
+          go test -v
+
+  test-alpine:
+    strategy:
+      matrix:
+        config:
+          - {arch: x86_64, branch: latest-stable}
+          - {arch: aarch64, branch: latest-stable}
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+        - name: Setup Alpine Linux
+          uses: jirutka/setup-alpine@v1
+          with:
+            arch: ${{ matrix.config.arch }}
+            branch: ${{ matrix.config.branch }}
+        - name: Install deps
+          shell: alpine.sh --root {0}
+          run: apk add git cmake gcc g++ make go
+        - name: Test
+          shell: alpine.sh --root {0}
+          run: go test -v
+
+  release:
+    needs: [test-windows, test-darwin, test-alpine]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
