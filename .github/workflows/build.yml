@@ -1,6 +1,5 @@
 name: go-goldilocks pipeline
-on: [push]
-
+on: push
 jobs:
   test-windows:
     runs-on: windows-latest
@@ -13,7 +12,6 @@ jobs:
             go-version: 1.23
         - name: Test
           run: go test -v
-
   test-darwin:
     strategy:
       matrix:
@@ -33,7 +31,6 @@ jobs:
           export GOARCH=${{ matrix.config.arch }}
           export GOOS=darwin
           go test -v
-
   test-alpine:
     strategy:
       matrix:
@@ -50,9 +47,8 @@ jobs:
         - name: Test
           shell: alpine.sh --root {0}
           run: go test -v
-
-  tag:
-    needs: [test-windows, test-mac, test-alpine]
+  release:
+    needs: [test-windows, test-darwin, test-alpine]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
