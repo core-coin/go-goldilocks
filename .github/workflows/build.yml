@@ -1,6 +1,7 @@
 name: go-goldilocks pipeline
 on: push
 jobs:
+
   test-windows:
     runs-on: windows-latest
     steps:
@@ -12,6 +13,7 @@ jobs:
             go-version: 1.23
         - name: Test
           run: go test -v
+
   test-darwin:
     strategy:
       matrix:
@@ -31,6 +33,7 @@ jobs:
           export GOARCH=${{ matrix.config.arch }}
           export GOOS=darwin
           go test -v
+
   test-alpine:
     strategy:
       matrix:
@@ -41,12 +44,18 @@ jobs:
     steps:
         - name: Checkout
           uses: actions/checkout@v4
+        - name: Setup Alpine Linux
+          uses: jirutka/setup-alpine@v1
+          with:
+            arch: ${{ matrix.config.arch }}
+            branch: ${{ matrix.config.branch }}
         - name: Install deps
           shell: alpine.sh --root {0}
           run: apk add git cmake gcc g++ make go
         - name: Test
           shell: alpine.sh --root {0}
           run: go test -v
+
   release:
     needs: [test-windows, test-darwin, test-alpine]
     runs-on: ubuntu-latest
