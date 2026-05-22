@@ -1,83 +1,65 @@
-name: go-goldilocks pipeline
-on: push
+name: build
+
+on:
+  push: {branches: [master]}
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 jobs:
-
-  test-windows:
-    runs-on: windows-latest
-    steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        - name: Setup
-          uses: actions/setup-go@v1
-          with:
-            go-version: 1.23
-        - name: Test
-          run: go test -v
-
-  test-darwin:
+  test:
+    name: ${{ matrix.name }}
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
-        config:
-          - {os: macos-latest, arch: arm64}
-          - {os: macos-13, arch: amd64}
-    runs-on: ${{ matrix.config.os }}
+        include:
+          - {os: ubuntu-latest,    name: linux-amd64}
+          - {os: ubuntu-24.04-arm, name: linux-arm64}
+          - {os: macos-latest,     name: macos-arm64}
+          - {os: windows-latest,   name: windows}
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.23
-      - name: Test
-        run: |
-          export GOARCH=${{ matrix.config.arch }}
-          export GOOS=darwin
-          go test -v
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with: {go-version: '1.23'}
+      - run: go test -v -race
 
   test-alpine:
-    strategy:
-      matrix:
-        config:
-          - {arch: x86_64, branch: latest-stable}
-          - {arch: aarch64, branch: latest-stable}
+    name: alpine-x86_64
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-        - name: Checkout
-          uses: actions/checkout@v4
-        - name: Setup Alpine Linux
-          uses: jirutka/setup-alpine@v1
-          with:
-            arch: ${{ matrix.config.arch }}
-            branch: ${{ matrix.config.branch }}
-        - name: Install deps
-          shell: alpine.sh --root {0}
-          run: apk add git cmake gcc g++ make go
-        - name: Test
-          shell: alpine.sh --root {0}
-          run: go test -v
+      - uses: actions/checkout@v5
+      - uses: jirutka/setup-alpine@v1
+        with:
+          branch: latest-stable
+          packages: gcc musl-dev go
+      - run: go test -v -race
+        shell: alpine.sh --root {0}
 
   release:
-    needs: [test-windows, test-darwin, test-alpine]
+    needs: [test, test-alpine]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    permissions: {contents: write}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Bump version
-        id: version_bump
+      - uses: actions/checkout@v5
+        with: {fetch-depth: 0}
+      - id: bump
         uses: anothrNick/github-tag-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: "patch"
-          RELEASE_BRANCHES: "master"
+          DEFAULT_BUMP: patch
+          RELEASE_BRANCHES: master
           WITH_V: true
-      - name: Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        with:
-          tag_name: ${{steps.version_bump.outputs.tag}}
-          release_name: go-goldilocks ${{steps.version_bump.outputs.tag}}
-          draft: false
-          prerelease: false
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: gh release create "$TAG" --title "go-goldilocks $TAG" --generate-notes
